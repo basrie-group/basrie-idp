@@ -1,0 +1,103 @@
+services:
+  # ============================================================================
+  # 1. Keycloak Identity Provider (Production Mode)
+  # ============================================================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:${KC_IMAGE_TAG:-26.1.0}
+    container_name: identity-keycloak
+    restart: unless-stopped
+    command: start
+    environment:
+      # External PostgreSQL Database Connection
+      KC_DB: postgres
+      KC_DB_URL_HOST: ${POSTGRES_HOST}
+      KC_DB_URL_PORT: ${POSTGRES_PORT:-5432}
+      KC_DB_URL_DATABASE: ${POSTGRES_DB:-keycloak}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+
+      # Bootstrap Admin Credentials (initial run only)
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+
+      # Hostname, Network, and Proxy Settings
+      KC_HOSTNAME: ${KC_HOSTNAME:-http://localhost:8080}
+      KC_HOSTNAME_STRICT: ${KC_HOSTNAME_STRICT:-true}
+      KC_HTTP_ENABLED: ${KC_HTTP_ENABLED:-true}
+      KC_PROXY_HEADERS: ${KC_PROXY_HEADERS:-xforwarded}
+
+      # Observability (Health & Metrics)
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KC_LOG_LEVEL: ${KC_LOG_LEVEL:-INFO}
+    ports:
+      - "${KC_PORT:-8080}:8080"
+      - "${KC_MANAGEMENT_PORT:-9000}:9000"
+    volumes:
+      - ./keycloak/themes:/opt/keycloak/themes:ro
+    networks:
+      - identity-net
+    healthcheck:
+      test:
+        - "CMD"
+        - "/bin/bash"
+        - "-c"
+        - "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '\"status\": \"UP\"'"
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  # ============================================================================
+  # 3. Keycloak Config CLI (Declarative GitOps Configuration)
+  # ============================================================================
+  keycloak-config-cli:
+    image: adorsys/keycloak-config-cli:${CONFIG_CLI_IMAGE_TAG:-v6.5.1}
+    container_name: identity-config-cli
+    restart: "no"
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_USER: ${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}
+      KEYCLOAK_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      KEYCLOAK_AVAILABILITYCHECK_ENABLED: "true"
+      KEYCLOAK_AVAILABILITYCHECK_TIMEOUT: "120s"
+      IMPORT_FILES_LOCATIONS: /config/platform/realm.yml,/config/platform/clients.yml,/config/platform/roles.yml
+      IMPORT_VARSUBSTITUTION_ENABLED: "true"
+      IMPORT_VARSUBSTITUTION_PREFIX: "$${"
+      IMPORT_VARSUBSTITUTION_SUFFIX: "}"
+
+      # Realm SMTP Env Vars
+      KC_SMTP_HOST: ${KC_SMTP_HOST:-mailpit}
+      KC_SMTP_PORT: ${KC_SMTP_PORT:-1025}
+      KC_SMTP_FROM: ${KC_SMTP_FROM:-noreply@platform.local}
+      KC_SMTP_AUTH: ${KC_SMTP_AUTH:-false}
+      KC_SMTP_SSL: ${KC_SMTP_SSL:-false}
+      KC_SMTP_STARTTLS: ${KC_SMTP_STARTTLS:-false}
+      KC_SMTP_USER: ${KC_SMTP_USER:-}
+      KC_SMTP_PASSWORD: ${KC_SMTP_PASSWORD:-}
+
+      # Test Product Clients Secrets & URIs
+      TEST_USER_WEB_SECRET: ${TEST_USER_WEB_SECRET}
+      TEST_USER_WEB_REDIRECT_URI_1: ${TEST_USER_WEB_REDIRECT_URI_1}
+      TEST_USER_WEB_REDIRECT_URI_2: ${TEST_USER_WEB_REDIRECT_URI_2}
+      TEST_USER_WEB_WEB_ORIGIN_1: ${TEST_USER_WEB_WEB_ORIGIN_1}
+      TEST_USER_WEB_WEB_ORIGIN_2: ${TEST_USER_WEB_WEB_ORIGIN_2}
+
+      TEST_ADMIN_WEB_SECRET: ${TEST_ADMIN_WEB_SECRET}
+      TEST_ADMIN_WEB_REDIRECT_URI_1: ${TEST_ADMIN_WEB_REDIRECT_URI_1}
+      TEST_ADMIN_WEB_REDIRECT_URI_2: ${TEST_ADMIN_WEB_REDIRECT_URI_2}
+      TEST_ADMIN_WEB_WEB_ORIGIN_1: ${TEST_ADMIN_WEB_WEB_ORIGIN_1}
+      TEST_ADMIN_WEB_WEB_ORIGIN_2: ${TEST_ADMIN_WEB_WEB_ORIGIN_2}
+
+      TEST_APICLIENT_SECRET: ${TEST_APICLIENT_SECRET}
+    volumes:
+      - ./keycloak/import:/config:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks:
+      - identity-net
+
+networks:
+  identity-net:
+    driver: bridge

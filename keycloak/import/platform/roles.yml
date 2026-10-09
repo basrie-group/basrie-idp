@@ -1,0 +1,27 @@
+# ==============================================================================
+# Client Roles Configuration
+# ==============================================================================
+realm: platform
+roles:
+  client:
+    test-api:
+      - name: user
+        description: Standard user access
+        composite: false
+        clientRole: true
+      - name: admin
+        description: Administrator access
+        composite: false
+        clientRole: true
+      - name: api-access
+        description: Machine caller API access
+        composite: false
+        clientRole: true
+
+users:
+  - username: service-account-test-apiclient-example
+    serviceAccountClientId: test-apiclient-example
+    enabled: true
+    clientRoles:
+      test-api:
+        - api-access

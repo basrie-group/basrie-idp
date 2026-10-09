@@ -1,0 +1,117 @@
+# ==============================================================================
+# Platform Clients Configuration
+# ==============================================================================
+realm: platform
+clients:
+  # ----------------------------------------------------------------------------
+  # 1. test-user-web (User-facing Web App BFF)
+  # ----------------------------------------------------------------------------
+  - clientId: test-user-web
+    name: Test User Web BFF
+    description: User-facing frontend BFF confidential client (Auth code + PKCE)
+    enabled: true
+    publicClient: false
+    clientAuthenticatorType: client-secret
+    secret: ${env:TEST_USER_WEB_SECRET}
+    standardFlowEnabled: true
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: false
+    frontchannelLogout: true
+    attributes:
+      pkce.code.challenge.method: S256
+      post.logout.redirect.uris: "+"
+    redirectUris:
+      - ${env:TEST_USER_WEB_REDIRECT_URI_1}
+      - ${env:TEST_USER_WEB_REDIRECT_URI_2}
+    webOrigins:
+      - ${env:TEST_USER_WEB_WEB_ORIGIN_1}
+      - ${env:TEST_USER_WEB_WEB_ORIGIN_2}
+    protocolMappers:
+      - name: audience-test-api
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        consentRequired: false
+        config:
+          included.client.audience: test-api
+          id.token.claim: "false"
+          access.token.claim: "true"
+          introspection.token.claim: "true"
+
+  # ----------------------------------------------------------------------------
+  # 2. test-admin-web (Admin Web App BFF)
+  # ----------------------------------------------------------------------------
+  - clientId: test-admin-web
+    name: Test Admin Web BFF
+    description: Admin frontend BFF confidential client with strict session timeouts (Auth code + PKCE)
+    enabled: true
+    publicClient: false
+    clientAuthenticatorType: client-secret
+    secret: ${env:TEST_ADMIN_WEB_SECRET}
+    standardFlowEnabled: true
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: false
+    frontchannelLogout: true
+    attributes:
+      pkce.code.challenge.method: S256
+      post.logout.redirect.uris: "+"
+      # Stricter session lifetime (15m idle / 1h max)
+      client.session.idle.timeout: "900"
+      client.session.max.lifespan: "3600"
+      client.offline.session.idle.timeout: "900"
+      client.offline.session.max.lifespan: "3600"
+    redirectUris:
+      - ${env:TEST_ADMIN_WEB_REDIRECT_URI_1}
+      - ${env:TEST_ADMIN_WEB_REDIRECT_URI_2}
+    webOrigins:
+      - ${env:TEST_ADMIN_WEB_WEB_ORIGIN_1}
+      - ${env:TEST_ADMIN_WEB_WEB_ORIGIN_2}
+    protocolMappers:
+      - name: audience-test-api
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        consentRequired: false
+        config:
+          included.client.audience: test-api
+          id.token.claim: "false"
+          access.token.claim: "true"
+          introspection.token.claim: "true"
+
+  # ----------------------------------------------------------------------------
+  # 3. test-api (Backend Resource Server)
+  # ----------------------------------------------------------------------------
+  - clientId: test-api
+    name: Test Backend API Resource Server
+    description: Resource server validating JWT bearer tokens (holds API roles)
+    enabled: true
+    bearerOnly: true
+    standardFlowEnabled: false
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: false
+
+  # ----------------------------------------------------------------------------
+  # 4. test-apiclient-example (Machine Client / Service Account)
+  # ----------------------------------------------------------------------------
+  - clientId: test-apiclient-example
+    name: Test Machine API Client Example
+    description: Machine caller authenticating via Client Credentials grant
+    enabled: true
+    publicClient: false
+    clientAuthenticatorType: client-secret
+    secret: ${env:TEST_APICLIENT_SECRET}
+    standardFlowEnabled: false
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: true
+    protocolMappers:
+      - name: audience-test-api
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        consentRequired: false
+        config:
+          included.client.audience: test-api
+          id.token.claim: "false"
+          access.token.claim: "true"
+          introspection.token.claim: "true"

@@ -1,0 +1,21 @@
+# Environment and secrets
+.env
+*.env.local
+*.key
+*.pem
+*.pfx
+*.jks
+
+# Logs
+*.log
+logs/
+
+# Database dumps and exports
+*.sql
+*.dump
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

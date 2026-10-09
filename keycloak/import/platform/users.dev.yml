@@ -1,0 +1,34 @@
+# ==============================================================================
+# Seeded Test Users (DEVELOPMENT ENVIRONMENT ONLY)
+# ==============================================================================
+# WARNING: Do NOT load or mount this file in staging or production environments.
+# ==============================================================================
+realm: platform
+users:
+  - username: user@test.local
+    email: user@test.local
+    firstName: Test
+    lastName: User
+    enabled: true
+    emailVerified: true
+    credentials:
+      - type: password
+        value: ${env:TEST_DEV_USER_PASSWORD}
+        temporary: false
+    clientRoles:
+      test-api:
+        - user
+
+  - username: admin@test.local
+    email: admin@test.local
+    firstName: Test
+    lastName: Admin
+    enabled: true
+    emailVerified: true
+    credentials:
+      - type: password
+        value: ${env:TEST_DEV_ADMIN_PASSWORD}
+        temporary: false
+    clientRoles:
+      test-api:
+        - admin

@@ -1,0 +1,74 @@
+# ==============================================================================
+# Platform Realm Configuration
+# ==============================================================================
+realm: platform
+displayName: Platform Identity Service
+displayNameHtml: "<b>Platform</b> Identity Service"
+enabled: true
+
+# User Registration & Account Recovery
+registrationAllowed: true
+resetPasswordAllowed: true
+loginWithEmailAllowed: true
+duplicateEmailsAllowed: false
+verifyEmail: true
+rememberMe: true
+
+# Security Defenses: Brute Force Detection
+bruteForceProtected: true
+permanentLockout: false
+maxFailureWaitSeconds: 900
+minimumQuickLoginWaitSeconds: 60
+waitIncrementSeconds: 60
+quickLoginCheckMilliSeconds: 1000
+maxDeltaTimeSeconds: 43200
+failureFactor: 5
+
+# Password Policy: Minimum 12 characters, not equal to username
+passwordPolicy: "length(12) and notUsername(undefined)"
+
+# Token & Session Lifecycles
+accessTokenLifespan: 300
+accessTokenLifespanForImplicitFlow: 300
+ssoSessionIdleTimeout: 1800
+ssoSessionMaxLifespan: 36000
+ssoSessionIdleTimeoutRememberMe: 604800
+ssoSessionMaxLifespanRememberMe: 2592000
+clientSessionIdleTimeout: 1800
+clientSessionMaxLifespan: 36000
+
+# Refresh Token Rotation with Immediate Reuse Detection
+revokeRefreshToken: true
+refreshTokenMaxReuse: 0
+
+# Multi-Factor Authentication Policies (TOTP & WebAuthn / Passkeys)
+otpPolicyType: totp
+otpPolicyAlgorithm: HmacSHA1
+otpPolicyDigits: 6
+otpPolicyPeriod: 30
+otpSupportedApplications:
+  - FreeOTP
+  - Google Authenticator
+  - Microsoft Authenticator
+
+webAuthnPolicyRpEntityName: "Platform Identity Service"
+webAuthnPolicySignatureAlgorithms:
+  - ES256
+  - RS256
+webAuthnPolicyAttestationConveyancePreference: not_specified
+webAuthnPolicyAuthenticatorAttachment: not_specified
+webAuthnPolicyRequireResidentKey: not_specified
+webAuthnPolicyUserVerificationRequirement: preferred
+webAuthnPolicyCreateTimeout: 0
+webAuthnPolicyAvoidSameAuthenticatorRegister: false
+
+# SMTP Gateway Configuration (Env-driven)
+smtpServer:
+  host: ${env:KC_SMTP_HOST}
+  port: ${env:KC_SMTP_PORT}
+  from: ${env:KC_SMTP_FROM}
+  auth: ${env:KC_SMTP_AUTH}
+  ssl: ${env:KC_SMTP_SSL}
+  starttls: ${env:KC_SMTP_STARTTLS}
+  user: ${env:KC_SMTP_USER}
+  password: ${env:KC_SMTP_PASSWORD}

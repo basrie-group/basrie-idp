@@ -1,0 +1,41 @@
+# ==============================================================================
+# Docker Compose Development Override
+# ==============================================================================
+# Automatically merged with docker-compose.yml by Docker Compose in development.
+# Overrides Keycloak to run in 'start-dev' mode, enables Mailpit, and seeds dev users.
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # Keycloak Development Overrides
+  # ----------------------------------------------------------------------------
+  keycloak:
+    command: start-dev
+    environment:
+      KC_HOSTNAME_STRICT: "false"
+
+  # ----------------------------------------------------------------------------
+  # Keycloak Config CLI Development Overrides
+  # ----------------------------------------------------------------------------
+  keycloak-config-cli:
+    environment:
+      # Include users.dev.yml by importing all platform files in order in dev
+      IMPORT_FILES_LOCATIONS: /config/platform/realm.yml,/config/platform/clients.yml,/config/platform/roles.yml,/config/platform/users.dev.yml
+      TEST_DEV_USER_PASSWORD: ${TEST_DEV_USER_PASSWORD}
+      TEST_DEV_ADMIN_PASSWORD: ${TEST_DEV_ADMIN_PASSWORD}
+    depends_on:
+      mailpit:
+        condition: service_started
+
+  # ----------------------------------------------------------------------------
+  # Mailpit (Dev SMTP Catcher & Web Inbox)
+  # ----------------------------------------------------------------------------
+  mailpit:
+    image: axllent/mailpit:${MAILPIT_IMAGE_TAG:-v1.22.3}
+    container_name: identity-mailpit
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    networks:
+      - identity-net
