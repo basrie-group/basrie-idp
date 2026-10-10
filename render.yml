@@ -1,0 +1,127 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Keycloak
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: basrie-idp-keycloak
+    runtime: docker
+    region: frankfurt          # all services must share a region for private networking
+    plan: standard             # Keycloak needs roughly 1GB+ RAM; 512MB plans will likely OOM
+    dockerfilePath: ./keycloak/Dockerfile
+    dockerContext: .
+    healthCheckPath: /realms/master   # health endpoints live on the management port, which Render can't reach
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: KC_HTTP_PORT
+        value: "10000"
+
+      # Database (runtime values; KC_DB itself is set at build time in the Dockerfile)
+      - key: KC_DB_URL_HOST
+        sync: false
+      - key: KC_DB_URL_PORT
+        value: "5432"
+      - key: KC_DB_URL_DATABASE
+        sync: false
+      - key: KC_DB_USERNAME
+        sync: false
+      - key: KC_DB_PASSWORD
+        sync: false
+      - key: KC_DB_URL_PROPERTIES
+        value: "?sslmode=require"
+
+      # Bootstrap admin (first start only)
+      - key: KC_BOOTSTRAP_ADMIN_USERNAME
+        value: admin
+      - key: KC_BOOTSTRAP_ADMIN_PASSWORD
+        generateValue: true
+
+      # Hostname / proxy. Leave KC_HOSTNAME unset to default to Render's public URL (see Dockerfile).
+      # Set it to your custom domain (https://identity.domain.ng) when you attach one.
+      - key: KC_HOSTNAME
+        sync: false   # e.g. https://identity-keycloak.onrender.com, or your custom domain
+      - key: KC_HOSTNAME_STRICT
+        value: "true"
+      - key: KC_HTTP_ENABLED
+        value: "true"
+      - key: KC_PROXY_HEADERS
+        value: xforwarded
+
+      - key: KC_LOG_LEVEL
+        value: INFO
+
+  # ---------------------------------------------------------------------------
+  # keycloak-config-cli (manual one-shot job)
+  # ---------------------------------------------------------------------------
+  - type: cron
+    name: identity-config-cli
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    schedule: "0 0 1 1 *"      # effectively never; trigger manually from the dashboard
+    dockerfilePath: ./keycloak/Dockerfile.config-cli
+    dockerContext: .
+    envVars:
+      # Public URL of the Keycloak service, e.g. https://basrie-idp-keycloak.onrender.com
+      - key: KEYCLOAK_URL
+        sync: false
+      - key: KEYCLOAK_USER
+        fromService: { type: web, name: basrie-idp-keycloak, envVarKey: KC_BOOTSTRAP_ADMIN_USERNAME }
+      - key: KEYCLOAK_PASSWORD
+        fromService: { type: web, name: basrie-idp-keycloak, envVarKey: KC_BOOTSTRAP_ADMIN_PASSWORD }
+      - key: KEYCLOAK_AVAILABILITYCHECK_ENABLED
+        value: "true"
+      - key: KEYCLOAK_AVAILABILITYCHECK_TIMEOUT
+        value: 120s
+      - key: IMPORT_FILES_LOCATIONS
+        value: /config/platform/realm.yml,/config/platform/clients.yml,/config/platform/roles.yml
+      - key: IMPORT_VARSUBSTITUTION_ENABLED
+        value: "true"
+      - key: IMPORT_VARSUBSTITUTION_PREFIX
+        value: "${"            # compose needed "$${" as an escape; here it is literal
+      - key: IMPORT_VARSUBSTITUTION_SUFFIX
+        value: "}"
+
+      # Realm SMTP (use a real provider; there is no Mailpit on Render)
+      - key: KC_SMTP_HOST
+        sync: false
+      - key: KC_SMTP_PORT
+        value: "587"
+      - key: KC_SMTP_FROM
+        sync: false
+      - key: KC_SMTP_AUTH
+        value: "true"
+      - key: KC_SMTP_SSL
+        value: "false"
+      - key: KC_SMTP_STARTTLS
+        value: "true"
+      - key: KC_SMTP_USER
+        sync: false
+      - key: KC_SMTP_PASSWORD
+        sync: false
+
+      # Test product clients
+      - key: TEST_USER_WEB_SECRET
+        generateValue: true
+      - key: TEST_USER_WEB_REDIRECT_URI_1
+        sync: false
+      - key: TEST_USER_WEB_REDIRECT_URI_2
+        sync: false
+      - key: TEST_USER_WEB_WEB_ORIGIN_1
+        sync: false
+      - key: TEST_USER_WEB_WEB_ORIGIN_2
+        sync: false
+
+      - key: TEST_ADMIN_WEB_SECRET
+        generateValue: true
+      - key: TEST_ADMIN_WEB_REDIRECT_URI_1
+        sync: false
+      - key: TEST_ADMIN_WEB_REDIRECT_URI_2
+        sync: false
+      - key: TEST_ADMIN_WEB_WEB_ORIGIN_1
+        sync: false
+      - key: TEST_ADMIN_WEB_WEB_ORIGIN_2
+        sync: false
+
+      - key: TEST_APICLIENT_SECRET
+        generateValue: true

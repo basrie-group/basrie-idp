@@ -17,3 +17,4 @@ COPY --from=builder /opt/keycloak/ /opt/keycloak/
 
 WORKDIR /opt/keycloak
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
+CMD ["start", "--optimized"]

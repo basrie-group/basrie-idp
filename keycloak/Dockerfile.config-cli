@@ -1,0 +1,2 @@
+FROM adorsys/keycloak-config-cli:v6.5.1
+COPY keycloak/import /config
